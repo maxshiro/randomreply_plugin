@@ -52,10 +52,25 @@
     "type": "int",
     "default": 3
   },
+  "photo_max_size_mb": {
+    "description": "图片保存大小上限（MB），超过则不保存；<=0 表示不限制",
+    "type": "float",
+    "default": 10
+  },
   "cache_ttl_hours": {
     "description": "缓存文件保留时长（小时），每日 01:30 清理超时文件",
     "type": "float",
     "default": 24
+  },
+  "local_keep_days": {
+    "description": "本地模式下原始数据保留天数（按日期目录清理），<=0 表示不启用",
+    "type": "int",
+    "default": 7
+  },
+  "local_max_storage_mb": {
+    "description": "本地模式下 original_data 容量上限（MB），超出后按最早日期清理，<=0 表示不启用",
+    "type": "float",
+    "default": 1024
   },
   "remote_mode": {
     "description": "远端模式：none=禁用, local_copy=本地目录映射, webdav_http=HTTP/WebDAV",

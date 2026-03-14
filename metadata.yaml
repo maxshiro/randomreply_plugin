@@ -1,6 +1,6 @@
 name: randomreply_plugin
 display_name: Random Reply
 desc: Cross-platform random reply plugin for AstrBot (QQ/Telegram).
-version: v1.0.0
+version: v1.2.0
 author: maxshiro
 repo: https://github.com/maxshiro/randomreply_plugin

@@ -52,7 +52,7 @@ class _FileLock:
         self.fp.close()
 
 
-@register("randomreply_plugin", "maxshiro", "跨平台随机回复插件（QQ/Telegram）", "1.1.0")
+@register("randomreply_plugin", "maxshiro", "跨平台随机回复插件（QQ/Telegram）", "1.2.0")
 class RandomReplyPlugin(Star):
     LINK_RE = re.compile(r"(https?://|www\.)", re.IGNORECASE)
     PHOTO_NAME_RE = re.compile(
@@ -196,6 +196,8 @@ class RandomReplyPlugin(Star):
             )
             return None
 
+        max_photo_size_mb = float(self._get_config("photo_max_size_mb", 10))
+        max_photo_size_bytes = int(max(0.0, max_photo_size_mb) * 1024 * 1024)
         if not local_path.exists() or local_path.stat().st_size <= 0:
             try:
                 if local_path.exists():
@@ -207,6 +209,21 @@ class RandomReplyPlugin(Star):
                 platform,
                 group_id,
                 image_name,
+            )
+            return None
+        if max_photo_size_bytes > 0 and local_path.stat().st_size > max_photo_size_bytes:
+            current_size = local_path.stat().st_size
+            try:
+                local_path.unlink(missing_ok=True)
+            except Exception:
+                pass
+            logger.warning(
+                "[randomreply_plugin] 图片超过大小阈值，已丢弃: platform=%s group=%s file=%s size=%s threshold=%s",
+                platform,
+                group_id,
+                image_name,
+                current_size,
+                max_photo_size_bytes,
             )
             return None
         return image_name
@@ -567,6 +584,74 @@ class RandomReplyPlugin(Star):
                 else:
                     logger.warning("[randomreply_plugin] 目录推送未完全成功，暂不清理: %s", date_dir)
 
+    def _collect_date_dirs(self) -> List[Path]:
+        date_dirs: List[Path] = []
+        if not self.original_dir.exists():
+            return date_dirs
+        for platform_dir in self.original_dir.iterdir():
+            if not platform_dir.is_dir():
+                continue
+            for date_dir in platform_dir.iterdir():
+                if date_dir.is_dir() and date_dir.name.isdigit() and len(date_dir.name) == 8:
+                    date_dirs.append(date_dir)
+        date_dirs.sort(key=lambda p: p.name)
+        return date_dirs
+
+    def _dir_size_bytes(self, target: Path) -> int:
+        total = 0
+        for root, _, files in os.walk(target):
+            for name in files:
+                fp = Path(root) / name
+                try:
+                    total += fp.stat().st_size
+                except Exception:
+                    continue
+        return total
+
+    def _apply_local_keep_days(self):
+        keep_days = int(self._get_config("local_keep_days", 0))
+        if keep_days <= 0:
+            return
+        cutoff_date = dt.datetime.now().date() - dt.timedelta(days=keep_days)
+        for date_dir in self._collect_date_dirs():
+            try:
+                date_value = dt.datetime.strptime(date_dir.name, "%Y%m%d").date()
+            except ValueError:
+                continue
+            if date_value <= cutoff_date:
+                shutil.rmtree(date_dir, ignore_errors=True)
+                logger.info("[randomreply_plugin] 本地模式按天数清理目录: %s", date_dir)
+
+    def _apply_local_size_limit(self):
+        limit_mb = float(self._get_config("local_max_storage_mb", 0))
+        limit_bytes = int(max(0.0, limit_mb) * 1024 * 1024)
+        if limit_bytes <= 0:
+            return
+
+        date_dirs = self._collect_date_dirs()
+        total = sum(self._dir_size_bytes(p) for p in date_dirs)
+        if total <= limit_bytes:
+            return
+
+        for date_dir in date_dirs:
+            if total <= limit_bytes:
+                break
+            removed_size = self._dir_size_bytes(date_dir)
+            shutil.rmtree(date_dir, ignore_errors=True)
+            total -= removed_size
+            logger.info(
+                "[randomreply_plugin] 本地模式按容量清理目录: dir=%s removed=%s remain=%s limit=%s",
+                date_dir,
+                removed_size,
+                total,
+                limit_bytes,
+            )
+
+    def _run_local_retention(self):
+        # 本地模式不执行远端备份，仅执行本地保留策略。
+        self._apply_local_keep_days()
+        self._apply_local_size_limit()
+
     def _cleanup_cache_media(self):
         self.cache_media_dir.mkdir(parents=True, exist_ok=True)
         now = dt.datetime.now().timestamp()
@@ -588,7 +673,10 @@ class RandomReplyPlugin(Star):
                 now = dt.datetime.now()
                 today = now.strftime("%Y%m%d")
                 if now.strftime("%H:%M") == "01:00" and self._last_maintenance_run.get("push") != today:
-                    self._run_push_and_cleanup()
+                    if self._remote_mode() == "none":
+                        self._run_local_retention()
+                    else:
+                        self._run_push_and_cleanup()
                     self._last_maintenance_run["push"] = today
                 if now.strftime("%H:%M") == "01:30" and self._last_maintenance_run.get("cache") != today:
                     self._cleanup_cache_media()
