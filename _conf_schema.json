@@ -1,0 +1,85 @@
+{
+  "enable_passive_reply": {
+    "description": "是否启用被动随机回复",
+    "type": "bool",
+    "default": true
+  },
+  "platform_keywords": {
+    "description": "允许触发的消息平台关键字",
+    "type": "list",
+    "default": [
+      "aiocqhttp",
+      "qqofficial",
+      "telegram"
+    ],
+    "hint": "匹配 event.get_platform_name() 的小写子串"
+  },
+  "command_prefixes": {
+    "description": "命令前缀，命中时不会触发被动随机回复",
+    "type": "list",
+    "default": [
+      "/",
+      "!"
+    ]
+  },
+  "reply_chance": {
+    "description": "触发回复概率分母 REPLY_CHANCE，命中概率为 1/REPLY_CHANCE",
+    "type": "int",
+    "default": 100
+  },
+  "text_reply_ratio": {
+    "description": "命中回复后，优先选择文本的概率",
+    "type": "float",
+    "default": 0.6
+  },
+  "weighted_text_ratio": {
+    "description": "文本回复时，使用加权随机的概率",
+    "type": "float",
+    "default": 0.25
+  },
+  "max_text_length": {
+    "description": "文本存储最大长度 n，要求 L < n",
+    "type": "int",
+    "default": 30
+  },
+  "alpha": {
+    "description": "权重衰减系数 alpha，范围 0-1",
+    "type": "float",
+    "default": 0.1
+  },
+  "photo_fail_threshold": {
+    "description": "图片连续解析/下载失败阈值，达到后标记失效",
+    "type": "int",
+    "default": 3
+  },
+  "cache_ttl_hours": {
+    "description": "缓存文件保留时长（小时），每日 01:30 清理超时文件",
+    "type": "float",
+    "default": 24
+  },
+  "remote_mode": {
+    "description": "远端模式：none=禁用, local_copy=本地目录映射, webdav_http=HTTP/WebDAV",
+    "type": "string",
+    "default": "none",
+    "options": [
+      "none",
+      "local_copy",
+      "webdav_http"
+    ]
+  },
+  "remote_local_dir": {
+    "description": "remote_mode=local_copy 时，远端根目录（应包含 original_data）",
+    "type": "string",
+    "default": ""
+  },
+  "remote_base_url": {
+    "description": "remote_mode=webdav_http 时，远端基础 URL（不以 / 结尾）",
+    "type": "string",
+    "default": ""
+  },
+  "remote_timeout": {
+    "description": "远端请求超时时间（秒）",
+    "type": "float",
+    "default": 10
+  }
+}
