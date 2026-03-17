@@ -1,250 +1,140 @@
-# 介绍
-一个随机回复机器人，机器人会记录所有用户的消息到本地，当有用户发送消息时，机器人会随机发送数据库中的消息。
+# 简介
 
-# 详细介绍
-机器人会接收两种用户聊天的消息，一种是文本消息，另一种是图片消息。当用户发送文本消息时，机器人会将该消息保存到本地数据库中；当用户发送图片消息时，机器人会将该图片保存到本地，并将图片的路径保存到数据库中。
+Random Reply Plugin 是一个面向 AstrBot 的随机回复插件。
 
-当有用户发送消息时，机器人会随机从数据库中选择一条消息，并将该消息发送给用户。如果该消息是文本消息，机器人会直接发送文本；如果该消息是图片消息，机器人会读取图片并将其发送给用户。
+插件会在群聊或私聊（可配置）中记录文本与图片，并在命中概率时执行多种回复动作：
+- 主随机回复（文本/图片）
+- 复读
+- API 图片发送
+- @ 处理
+- 时间戳触发回复
 
-## 原始消息存储逻辑(远端存储)
-会将该条消息存储到原始数据库中，采用json格式
-json文件包含：发送者id、消息类型（text/image）、消息内容（text/图片名称）、时间戳（年月日时分秒，采用24小时制）。
-- 当消息为文本消息时，消息内容为文本内容.
-- 当消息为图片消息时，消息内容为图片的名称,图片将按照`平台_日期_群组id_用户id_时间戳(时分秒)_随机数`的命名格式进行存储，并将图片保存到当前文件夹中。另外，消息内容也会存储图片的路径，以便后续随机回复时能够正确读取图片并发送给用户。
-  
-存储格式示例：
-```json
-{
-    "sender_id": "123456789",
-    "message_type": "text",
-    "message_content": "这是一个文本消息",
-    "timestamp": "2024-06-06 14:30:00"
-}
-```
-```json
-{
-    "sender_id": "987654321",
-    "message_type": "image",
-    "message_content": "telegram_20240606_群组id1_用户id_时间戳_随机数.jpg",
-    "timestamp": "2024-06-06 15:45:00"
-}
-```
+## 文档入口
+- 架构说明：`ARCHITECTURE.md`
+- 版本日志：`CHANGELOG.md`
 
-原始数据库存储的目录格式如下：
-```
-original_data/
-├── 平台(telegram)/
-│   ├── 日期(20240606)/
-│   │   ├── 群组id1_messages.json
-│   │   ├── 群组id2_messages.json
-│   │   ├── 平台_日期_群组id_用户id_时间戳_随机数.jpg
-│   │   ├── 平台_日期_群组id_用户id_时间戳_随机数.png
-│   └── ...（更多日期/文件）
-└── ...（更多平台/日期/群组/消息/媒体文件）
-```
-其中：
-- `群组id1_messages.json`这个文件会存储当天所有的聊天内容，每天一个文件。
-- `平台_日期_群组id_用户id_时间戳_随机数.jpg`为图片文件，存储图片和stickers。
+# 功能介绍
 
+1. 数据入库
+- 文本入库：过滤链接、过滤带图消息、过滤超长文本。
+- 图片入库：保存原图并记录到图片库。
+- 原始消息归档：按平台/日期/群组写入 JSON。
 
-原始数据库本地将只保存当天的消息，过期的消息将被删除，以节省存储空间。每日 01:00 由定时任务将前一天及更早的数据推送到远端存储（支持 SMB、WebDAV 等协议）进行长期保存和备份，推送完成后删除本地过期数据。
+2. 随机回复
+- 主随机回复采用 1/N 触发模式。
+- 文本支持加权随机和均匀随机。
+- 图片采用本地优先、远端兜底。
 
-图片回复也将从远端存储中获取，机器人会根据图片的名称从远端下载图片，并将其发送给用户。这样可以确保机器人能够正确地回复图片消息，并且不会占用过多的本地存储空间。（具体下载实现待定，TODO）
+3. 复读与 API 图片
+- 复读功能独立开关与独立概率。
+- API 图片功能独立开关与独立概率，支持图片流/JSON/文本 URL 解析。
 
-## 随机回复消息存储逻辑(本地数据库)
-根据计算公式，将文本消息存储到本地`reply_msg_data.csv`文件中，作为随机回复的依据。
+4. @ 处理
+- 被 @ 时可在多个动作之间按权重选择：
+- 主随机回复
+- 复读
+- API 图片
+- 固定消息
 
-csv文件包含三列：消息内容、权重值、出现次数。
+5. 时间戳随机回复
+- 每分钟秒数为 0 时判定是否触发。
+- 支持生效时间段。
+- 支持在主随机回复与 API 图片间随机执行。
 
-权重值采用浮点数表示，范围为0-1，精确到小数点后五位，权重值越大则被随机选中的概率越大。
-原始消息权重最大为0.5，消息越短则权重越大，消息越长则权重越小。
+6. 定时维护
+- 每日 01:00：低权重文本清理 + 远端备份/本地保留。
+- 每日 01:30：缓存目录过期文件清理。
 
-### 文本消息存储逻辑
-当用户发送的为纯文本消息，则根据规则判断出随机回复的权重，然后存储到本地的回复库中。
-具体规则如下：
-- 消息越短则权重越大，消息越长则权重越小。
-- 消息中包含图片则权重为0，不进行存储。
-- 消息中包含链接则权重为0，不进行存储。
-- 消息存储长度上限为n个字符（即 L < n），达到或超过上限（L ≥ n）将不进行存储。
+7. 会话与存储范围控制
+- 私聊处理开关。
+- 群组白名单/黑名单。
+- 群独立文本库（可迁移旧全局库）。
 
-### 权重更新方式
-当接收到符合规则的消息时，进行下面流程：
-1. 计算该消息的原始权重值W0。
-原始权重公式：
-W0 = 0.5 × (1 - [(L - 1) / (n - 1)])
-其中，L为消息的长度（单位：中文字符），L 取值范围为 1 ≤ L < n。当L=1时，W0=0.5；当L趋近于n时，W0趋近于0。
-2. 如果csv文件中不存在该条消息，则追加一行新的记录，记录该消息的内容、权重值和出现次数（初始值为1）。
-3. 如果csv文件中已经存在该条消息，则先将出现次数 s 加 1，再将更新后的 s 代入下方公式计算新权重值，然后将新权重值和新出现次数写回文件。
-权重更新公式：
-Wn = W0 + (1 - W0) × [1 - exp(-α × (s-1))]
-其中，Wn为更新后的权重值，W0为原始权重值，s为已加1后的出现次数，α为衰减系数，取值范围为0-1，默认值为0.1。当消息出现次数越多时，权重值会逐渐趋近于1，但永远不会达到1。
+# 程序逻辑
 
-### 图片存储
-图片消息和stickers消息不进行权重计算，当存储图片消息时，会同时将图片的名称保存到reply_photo_data.csv文件中。
+1. 消息事件主流程
+- 接收消息
+- 平台/会话范围校验
+- 文本与图片入库
+- 功能编排（主随机回复 / 复读 / @处理）
+- 发送结果
 
-reply_photo_data.csv固定为三列：`图片名称,出现次数,失效标记`。
-- 当接收到图片消息时，如果该图片名称在csv文件中不存在，则追加一行记录：`图片名称,1,0`。
-- 如果该图片名称在csv文件中已存在，则只更新出现次数。
-- 失效标记取值：`0=可用`，`1=失效`。当图片连续读取失败达到阈值（默认3次）后，标记为失效。
+2. 定时流程
+- 循环调度 tick
+- 触发每日维护
+- 触发时间戳回复
 
-### 图片读取逻辑（补充）
-图片回复时按“本地优先，远端兜底”的策略读取：
+3. 分层调用原则
+- 入口层：`main.py`
+- 应用层：`app/*`
+- 功能层：`features/*`
+- 领域层：`domain/*`
+- 基础设施层：`infra/*`
 
-1. 从`reply_photo_data.csv`随机选出一条图片名称（例如：`telegram_20240606_group1_user1_153045_12345.jpg`）。
-2. 校验图片名称格式必须符合：`平台_日期_群组id_用户id_时间戳_随机数.扩展名`。
-   - 最少包含6段下划线分隔字段。
-   - 日期必须为8位数字（yyyyMMdd）。
-   - 不符合规则时，直接判定不可用并记录日志。
-3. 根据图片名称解析出平台、日期等信息，按固定规则拼接本地路径：`data/original_data/{platform}/{date}/{image_name}`。
-4. 若本地文件存在，则直接发送该图片。
-5. 若本地文件不存在，则执行远端拉取流程：
-    - 按相同相对路径，从远端存储（SMB/WebDAV）下载到本地缓存目录（建议：`data/cache_media/`）。
-    - 下载成功后校验文件可读且大小 > 0，再发送。
-6. 若远端也不存在或下载失败：
-    - 默认不回复（不回退文本）。
-    - 记录日志：图片名、平台、日期、失败原因。
-    - 连续失败达到阈值（例如 3 次）后，可将该图片标记为失效，避免后续频繁命中。
+上层调用下层，同层不互相调用。
 
-缓存清理规则：每日01:30清理`data/cache_media/`中修改时间超过24小时的文件。
+# 使用
 
-推荐新增一个通用函数：
+1. 安装
+- 将插件目录放入 AstrBot 插件目录。
+- 在插件管理界面启用插件。
 
-```python
-def resolve_photo_path(image_name: str) -> tuple[str | None, str | None]:
-     """
-     返回 (photo_path, source)
-     - source='local' 表示命中本地
-     - source='remote_cache' 表示从远端下载到本地缓存
-     - (None, None) 表示不可用
-     """
-     pass
-```
+2. 关键配置
+- 基础开关：`enable_passive_reply`
+- 主随机回复：`reply_chance`、`text_reply_ratio`、`weighted_text_ratio`
+- 复读：`enable_repeat`、`repeat_chance`
+- API 图片：`enable_api_image`、`api_image_chance`、`api_image_url`
+- @ 处理：`enable_at_handler` 与 `at_*_weight`
+- 时间戳：`enable_timestamp_random_reply`、`timestamp_reply_probability`
+- 私聊与群组范围：`allow_private_message`、`enabled_group_ids`、`disabled_group_ids`
+- 存储维护：`weight_cleanup_threshold`、`cache_ttl_hours`、`local_keep_days`、`local_max_storage_mb`
+- 远端：`remote_mode`、`remote_local_dir`、`remote_base_url`
 
-并在`send_photo(photo_path)`前统一调用该函数，确保图片回复链路一致。
+3. 推荐最小配置
+- 先只开启主随机回复，验证文本/图片入库。
+- 再开启复读、API 图片和时间戳功能。
+- 最后按需要开启群独立文本库与远端备份。
 
-### CSV并发与写入安全
-csv读写需要保证并发安全，避免多消息同时写入导致数据损坏：
+# 管理员命令
 
-1. 对`reply_msg_data.csv`和`reply_photo_data.csv`分别加文件锁。
-2. 写入采用原子写流程：先写入临时文件，再执行rename覆盖原文件。
-3. 任一读写失败时，记录错误日志并跳过本次更新，不影响主流程。
+以下命令为管理员私聊机器人时可用（默认开启，可通过 `enable_admin_debug_commands` 关闭）。
 
+1. `/random_reply_msg`
+- 测试随机文本回复。
 
+2. `/random_reply_img`
+- 测试随机图片回复（含路径解析）。
 
+3. `/repeat <文本>`
+- 测试复读功能。
 
-## 随机回复逻辑
-是否回复消息：
-if random:
-    # 选择回复图片还是回复文本：
-    if random:
-        # 回复文本逻辑
-        # 从reply_msg_data.csv文件中随机选择一条消息，根据公式，并发送。
-        if random:
-            # 权重随机回复文本
-        else:
-            # 纯随机回复文本
-    else:
-        # 回复图片
-        从reply_photo_data.csv文件中随机选择一条图片名称。
-        调用resolve_photo_path()解析可用路径后再发送；若不可用则默认不回复。
-else:
-    # 不回复消息
+4. `/api_image`
+- 测试 API 图片发送功能。
 
+5. `/at_message [文本]`
+- 测试 @ 处理动作选择逻辑。
 
-详细随机回复伪代码与随机逻辑：
-```
-REPLY_CHANCE = 100             # 回复概率（1/REPLY_CHANCE 的概率触发回复）
-TEXT_REPLY_RATIO = 0.6         # 回复文本概率（60%文本，40%图片）
-WEIGHTED_TEXT_RATIO = 0.25     # 文本回复时，权重抽取概率（25%权重，75%普通随机）
-MAX_LENGTH = 30                # 文本存储最大长度 n（可配置），L < n 才存储
-ALPHA = 0.1                    # 权重衰减系数 α（可配置），取值范围 0-1
-PHOTO_FAIL_THRESHOLD = 3       # 图片连续失败阈值，达到后标记失效
+6. `/timestamp_reply`
+- 测试时间戳随机回复逻辑（按触发概率判定）。
 
-def load_data():
-    # 从reply_msg_data.csv加载文本消息和权重
-    # 从reply_photo_data.csv加载图片列表
-    # 图片列表为图片名称，发送前通过resolve_photo_path()解析可用路径。
-    pass  # 具体实现略
-    return reply_list, weights, photo_list
+7. `/clean_weight [阈值]`
+- 清理低权重文本。
+- 示例：`/clean_weight 0.3`
+- 不传参数时默认使用 `0.2`。
 
-def send_text(text):
-    # 发送文本消息的函数
-    pass  # 具体实现略
+8. `/clean_cache`
+- 清理缓存目录中过期文件。
 
-def send_photo(photo_path):
-    # 发送图片消息的函数
-    # 输入已解析好的可用本地路径（本地命中或远端缓存）。
-    pass  # 具体实现略
+9. `/backup_data`
+- 执行远端备份并清理（远端模式）或本地保留清理（本地模式）。
 
-reply_list, weights, photo_list = load_data()
+10. `/remote_backup_test`
+- 测试远端备份连通性与推送结果统计。
 
-def random_reply_logic():
-    ra = random.randint(1, REPLY_CHANCE)
-    if ra != 1:
-        return None, None
+# 关于
 
-    has_text = len(reply_list) > 0
-    has_photo = len(photo_list) > 0
-
-    # 空库保护：文本库和图片库都为空时，不回复
-    if not has_text and not has_photo:
-        return None, None
-
-    if has_text and (not has_photo or random.random() < TEXT_REPLY_RATIO):
-        if random.random() < WEIGHTED_TEXT_RATIO:
-            reply = random.choices(reply_list, weights=weights, k=1)[0]
-        else:
-            reply = random.choice(reply_list)
-        return reply, 'text'
-
-    if has_photo:
-        valid_photos = [p for p in photo_list if not p.is_invalid]
-        if not valid_photos:
-            return None, None
-
-        reply = random.choice(valid_photos).name
-        photo_path, _ = resolve_photo_path(reply)
-        if photo_path:
-            return photo_path, 'photo'
-
-        # 第4条定稿：图片不可用时默认不回复
-        return None, None
-
-    return None, None
-
-reply, reply_type = random_reply_logic()
-if reply_type == 'text':
-    send_text(reply)
-elif reply_type == 'photo':
-    send_photo(reply)
-else:
-    pass  # 不回复
-
-```
-
-data文件夹结构如下：
-```
-data/
-├── original_data/
-│   ├── telegram/
-│   │   ├── 20240606/
-│   │   │   ├── 群组id1_messages.json
-│   │   │   ├── 群组id2_messages.json
-│   │   │   ├── telegram_20240606_群组id1_用户id_时间戳_随机数.jpg
-│   │   │   ├── telegram_20240606_群组id1_用户id_时间戳_随机数.png
-│   │   └── ...（更多日期/文件）
-│   └── ...（更多平台）
-├── cache_media/
-│   └── ...（远端下载后的临时媒体缓存）
-├── reply_msg_data.csv
-└── reply_photo_data.csv
-```
-
-## 已定稿规则（已合并）
-
-1. `reply_photo_data.csv`固定三列：`图片名称,出现次数,失效标记`。
-2. 图片名称必须通过格式校验，不合法即判定不可用并记录日志。
-3. `data/cache_media/`按每日01:30、保留24小时策略清理。
-4. 图片不可用时默认不回复（不回退文本）。
-5. csv读写采用文件锁 + 原子写，确保并发安全。
-6. 文本库与图库任一为空时均需保护；双空时直接不回复。
+- 作者：maxshiro
+- 插件名：randomreply_plugin
+- 适配平台：QQ / Telegram（可通过配置扩展匹配）
+- 许可证：见 `LICENSE`
+- 问题反馈：建议附上配置片段、日志与复现步骤

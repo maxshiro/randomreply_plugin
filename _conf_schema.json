@@ -1,11 +1,11 @@
 {
   "enable_passive_reply": {
-    "description": "是否启用被动随机回复",
+    "description": "[基础] 是否启用被动消息触发功能总开关",
     "type": "bool",
     "default": true
   },
   "platform_keywords": {
-    "description": "允许触发的消息平台关键字",
+    "description": "[基础] 允许触发的平台关键字",
     "type": "list",
     "default": [
       "aiocqhttp",
@@ -15,65 +15,204 @@
     "hint": "匹配 event.get_platform_name() 的小写子串"
   },
   "command_prefixes": {
-    "description": "命令前缀，命中时不会触发被动随机回复",
+    "description": "[基础] 命令前缀，命中后不会触发被动功能",
     "type": "list",
     "default": [
       "/",
       "!"
     ]
   },
+  "enable_admin_debug_commands": {
+    "description": "[基础] 是否启用管理员私聊调试命令",
+    "type": "bool",
+    "default": true
+  },
+
+  "allow_private_message": {
+    "description": "[会话范围] 是否处理私聊消息（默认不处理）",
+    "type": "bool",
+    "default": false
+  },
+  "enabled_group_ids": {
+    "description": "[会话范围] 群组白名单；为空表示不限制",
+    "type": "list",
+    "default": []
+  },
+  "disabled_group_ids": {
+    "description": "[会话范围] 群组黑名单；优先级高于白名单",
+    "type": "list",
+    "default": []
+  },
+
   "reply_chance": {
-    "description": "触发回复概率分母 REPLY_CHANCE，命中概率为 1/REPLY_CHANCE",
+    "description": "[主随机回复] 触发概率分母，命中概率为 1/reply_chance",
     "type": "int",
     "default": 100
   },
   "text_reply_ratio": {
-    "description": "命中回复后，优先选择文本的概率",
+    "description": "[主随机回复] 命中后优先走文本的概率",
     "type": "float",
     "default": 0.6
   },
   "weighted_text_ratio": {
-    "description": "文本回复时，使用加权随机的概率",
+    "description": "[主随机回复] 文本回复时使用加权随机的概率",
     "type": "float",
     "default": 0.25
   },
+
   "max_text_length": {
-    "description": "文本存储最大长度 n，要求 L < n",
+    "description": "[文本入库] 文本存储最大长度 n，要求 L < n",
     "type": "int",
     "default": 30
   },
   "alpha": {
-    "description": "权重衰减系数 alpha，范围 0-1",
+    "description": "[文本入库] 权重衰减系数 alpha，范围 0-1",
     "type": "float",
     "default": 0.1
   },
+  "weight_cleanup_threshold": {
+    "description": "[文本入库] 每日 01:00 清理低于该权重阈值的文本",
+    "type": "float",
+    "default": 0.2
+  },
+
   "photo_fail_threshold": {
-    "description": "图片连续解析/下载失败阈值，达到后标记失效",
+    "description": "[图片] 连续解析/下载失败阈值，达到后标记失效",
     "type": "int",
     "default": 3
   },
   "photo_max_size_mb": {
-    "description": "图片保存大小上限（MB），超过则不保存；<=0 表示不限制",
+    "description": "[图片] 图片保存大小上限（MB），<=0 表示不限制",
     "type": "float",
     "default": 10
   },
+
+  "enable_repeat": {
+    "description": "[复读] 是否启用复读功能",
+    "type": "bool",
+    "default": false
+  },
+  "repeat_chance": {
+    "description": "[复读] 触发概率分母，命中概率为 1/repeat_chance",
+    "type": "int",
+    "default": 100
+  },
+
+  "enable_api_image": {
+    "description": "[API图片] 是否启用 API 图片发送功能",
+    "type": "bool",
+    "default": false
+  },
+  "api_image_chance": {
+    "description": "[API图片] 触发概率分母，命中概率为 1/api_image_chance",
+    "type": "int",
+    "default": 100
+  },
+  "api_image_url": {
+    "description": "[API图片] 图片 API URL（可返回图片流、JSON 或文本中的图片链接）",
+    "type": "string",
+    "default": ""
+  },
+
+  "enable_at_handler": {
+    "description": "[@处理] 是否启用 @机器人处理",
+    "type": "bool",
+    "default": true
+  },
+  "at_random_reply_weight": {
+    "description": "[@处理] 执行主随机回复的权重",
+    "type": "int",
+    "default": 30
+  },
+  "at_repeat_weight": {
+    "description": "[@处理] 执行复读的权重",
+    "type": "int",
+    "default": 20
+  },
+  "at_api_image_weight": {
+    "description": "[@处理] 执行 API 图片发送的权重",
+    "type": "int",
+    "default": 10
+  },
+  "at_fixed_message_weight": {
+    "description": "[@处理] 执行固定消息回复的权重",
+    "type": "int",
+    "default": 40
+  },
+  "at_fixed_messages": {
+    "description": "[@处理] 固定消息候选列表",
+    "type": "list",
+    "default": [
+      "？",
+      "干嘛？"
+    ]
+  },
+
+  "enable_timestamp_random_reply": {
+    "description": "[时间戳触发] 是否启用每分钟秒=0的随机触发",
+    "type": "bool",
+    "default": false
+  },
+  "timestamp_reply_probability": {
+    "description": "[时间戳触发] 触发概率（0-1）",
+    "type": "float",
+    "default": 0.01
+  },
+  "timestamp_active_start_hour": {
+    "description": "[时间戳触发] 生效开始小时（0-23）",
+    "type": "int",
+    "default": 7
+  },
+  "timestamp_active_end_hour": {
+    "description": "[时间戳触发] 生效结束小时（0-23，不含）",
+    "type": "int",
+    "default": 22
+  },
+  "timestamp_enable_main_reply": {
+    "description": "[时间戳触发] 是否允许执行主随机回复",
+    "type": "bool",
+    "default": true
+  },
+  "timestamp_enable_api_image": {
+    "description": "[时间戳触发] 是否允许执行 API 图片发送",
+    "type": "bool",
+    "default": true
+  },
+
+  "group_isolated_text_db": {
+    "description": "[群独立文本库] 是否启用 reply_msg_data_{group_id}.csv",
+    "type": "bool",
+    "default": false
+  },
+  "group_db_auto_migrate": {
+    "description": "[群独立文本库] 启用后是否自动迁移旧全局文本库",
+    "type": "bool",
+    "default": false
+  },
+  "group_db_delete_global_after_migrate": {
+    "description": "[群独立文本库] 迁移完成后是否删除旧全局文本库",
+    "type": "bool",
+    "default": true
+  },
+
   "cache_ttl_hours": {
-    "description": "缓存文件保留时长（小时），每日 01:30 清理超时文件",
+    "description": "[本地清理] cache_media 缓存保留时长（小时）",
     "type": "float",
     "default": 24
   },
   "local_keep_days": {
-    "description": "本地模式下原始数据保留天数（按日期目录清理），<=0 表示不启用",
+    "description": "[本地清理] original_data 保留天数，<=0 表示不启用",
     "type": "int",
     "default": 7
   },
   "local_max_storage_mb": {
-    "description": "本地模式下 original_data 容量上限（MB），超出后按最早日期清理，<=0 表示不启用",
+    "description": "[本地清理] original_data 容量上限（MB），<=0 表示不启用",
     "type": "float",
     "default": 1024
   },
+
   "remote_mode": {
-    "description": "远端模式：none=禁用, local_copy=本地目录映射, webdav_http=HTTP/WebDAV",
+    "description": "[远端存储] 模式：none/local_copy/webdav_http",
     "type": "string",
     "default": "none",
     "options": [
@@ -83,17 +222,17 @@
     ]
   },
   "remote_local_dir": {
-    "description": "remote_mode=local_copy 时，远端根目录（应包含 original_data）",
+    "description": "[远端存储] local_copy 模式的远端根目录",
     "type": "string",
     "default": ""
   },
   "remote_base_url": {
-    "description": "remote_mode=webdav_http 时，远端基础 URL（不以 / 结尾）",
+    "description": "[远端存储] webdav_http 模式的基础 URL（不以 / 结尾）",
     "type": "string",
     "default": ""
   },
   "remote_timeout": {
-    "description": "远端请求超时时间（秒）",
+    "description": "[远端存储] 请求超时时间（秒）",
     "type": "float",
     "default": 10
   }
