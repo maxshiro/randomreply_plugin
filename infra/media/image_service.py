@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional, Tuple
 
 from astrbot.api import logger
-from infra.remote_storage.base import RemoteStorage
+from ..remote_storage.base import RemoteStorage
 
 
 class ImageService:

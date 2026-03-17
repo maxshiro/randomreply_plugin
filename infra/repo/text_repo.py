@@ -2,8 +2,8 @@ import csv
 from pathlib import Path
 from typing import Callable, Dict, List, Tuple
 
-from domain.weight_calculator import compute_updated_weight, compute_w0
-from infra.file_lock.lock import FileLock
+from ...domain.weight_calculator import compute_updated_weight, compute_w0
+from ..file_lock.lock import FileLock
 
 
 HEADER = ["消息内容", "权重值", "出现次数"]

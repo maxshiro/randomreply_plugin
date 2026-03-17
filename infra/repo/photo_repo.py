@@ -2,7 +2,7 @@ import csv
 from pathlib import Path
 from typing import List
 
-from infra.file_lock.lock import FileLock
+from ..file_lock.lock import FileLock
 
 
 HEADER = ["图片名称", "出现次数", "失效标记"]

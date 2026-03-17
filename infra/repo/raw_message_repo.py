@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List
 
-from infra.file_lock.lock import FileLock
+from ..file_lock.lock import FileLock
 
 
 class RawMessageRepo:

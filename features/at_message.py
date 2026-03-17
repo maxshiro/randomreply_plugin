@@ -1,7 +1,7 @@
 import random
 from typing import Callable, Optional, Tuple
 
-from domain.randomization import choose_weighted_candidate
+from ..domain.randomization import choose_weighted_candidate
 
 
 class AtMessageFeature:

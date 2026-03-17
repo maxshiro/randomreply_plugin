@@ -5,12 +5,12 @@ from typing import Any, Callable, List, Optional, Tuple
 from astrbot.api import logger
 from astrbot.api.event import AstrMessageEvent
 
-from app.feature_orchestrator import FeatureOrchestrator
-from domain.message import MessageContext
-from infra.media.image_service import ImageService
-from infra.repo.photo_repo import PhotoRepo
-from infra.repo.raw_message_repo import RawMessageRepo
-from infra.repo.text_repo import TextRepo
+from .feature_orchestrator import FeatureOrchestrator
+from ..domain.message import MessageContext
+from ..infra.media.image_service import ImageService
+from ..infra.repo.photo_repo import PhotoRepo
+from ..infra.repo.raw_message_repo import RawMessageRepo
+from ..infra.repo.text_repo import TextRepo
 
 
 class MessageProcessor:

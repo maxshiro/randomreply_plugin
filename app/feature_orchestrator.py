@@ -2,11 +2,11 @@ import datetime as dt
 import random
 from typing import Callable, Dict, List, Optional, Tuple
 
-from domain.randomization import clamp01
-from features.api_image import ApiImageFeature
-from features.at_message import AtMessageFeature
-from features.random_reply import RandomReplyFeature
-from features.repeat import RepeatFeature
+from ..domain.randomization import clamp01
+from ..features.api_image import ApiImageFeature
+from ..features.at_message import AtMessageFeature
+from ..features.random_reply import RandomReplyFeature
+from ..features.repeat import RepeatFeature
 
 
 class FeatureOrchestrator:

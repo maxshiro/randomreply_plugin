@@ -6,9 +6,9 @@ from typing import Callable, Dict, List, Optional, Tuple
 
 from astrbot.api import logger
 
-from app.feature_orchestrator import FeatureOrchestrator
-from infra.remote_storage.base import NoopStorage, RemoteStorage
-from infra.repo.text_repo import TextRepo
+from .feature_orchestrator import FeatureOrchestrator
+from ..infra.remote_storage.base import NoopStorage, RemoteStorage
+from ..infra.repo.text_repo import TextRepo
 
 
 class SchedulerService:

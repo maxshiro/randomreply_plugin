@@ -1,8 +1,8 @@
 from typing import Callable
 
-from infra.remote_storage.base import NoopStorage, RemoteStorage
-from infra.remote_storage.local_copy import LocalCopyStorage
-from infra.remote_storage.webdav_http import WebDavHttpStorage
+from .base import NoopStorage, RemoteStorage
+from .local_copy import LocalCopyStorage
+from .webdav_http import WebDavHttpStorage
 
 
 def build_remote_storage(get_config: Callable[[str, object], object]) -> RemoteStorage:

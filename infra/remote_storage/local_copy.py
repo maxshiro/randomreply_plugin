@@ -1,7 +1,7 @@
 import shutil
 from pathlib import Path
 
-from infra.remote_storage.base import RemoteStorage
+from .base import RemoteStorage
 
 
 class LocalCopyStorage(RemoteStorage):

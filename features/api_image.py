@@ -1,7 +1,7 @@
 from typing import Callable, Optional
 
-from domain.randomization import hit_by_denominator
-from infra.media.image_service import ImageService
+from ..domain.randomization import hit_by_denominator
+from ..infra.media.image_service import ImageService
 
 
 class ApiImageFeature:

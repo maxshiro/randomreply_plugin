@@ -1,10 +1,10 @@
 import random
 from typing import Callable, Dict, Optional, Tuple
 
-from domain.randomization import choose_weighted, clamp01, hit_by_denominator
-from infra.media.image_service import ImageService
-from infra.repo.photo_repo import PhotoRepo
-from infra.repo.text_repo import TextRepo
+from ..domain.randomization import choose_weighted, clamp01, hit_by_denominator
+from ..infra.media.image_service import ImageService
+from ..infra.repo.photo_repo import PhotoRepo
+from ..infra.repo.text_repo import TextRepo
 
 
 class RandomReplyFeature:

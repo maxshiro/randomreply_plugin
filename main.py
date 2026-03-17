@@ -6,18 +6,18 @@ from astrbot.api import AstrBotConfig, logger
 from astrbot.api.event import AstrMessageEvent, MessageChain, filter
 from astrbot.api.star import Context, Star, register
 
-from app.feature_orchestrator import FeatureOrchestrator
-from app.message_processor import MessageProcessor
-from app.scheduler import SchedulerService
-from features.api_image import ApiImageFeature
-from features.random_reply import RandomReplyFeature
-from features.repeat import RepeatFeature
-from infra.media.image_service import ImageService
-from infra.remote_storage.factory import build_remote_storage
-from infra.repo.photo_repo import PhotoRepo
-from infra.repo.raw_message_repo import RawMessageRepo
-from infra.repo.text_repo import TextRepo
-from domain.randomization import choose_weighted
+from .app.feature_orchestrator import FeatureOrchestrator
+from .app.message_processor import MessageProcessor
+from .app.scheduler import SchedulerService
+from .features.api_image import ApiImageFeature
+from .features.random_reply import RandomReplyFeature
+from .features.repeat import RepeatFeature
+from .infra.media.image_service import ImageService
+from .infra.remote_storage.factory import build_remote_storage
+from .infra.repo.photo_repo import PhotoRepo
+from .infra.repo.raw_message_repo import RawMessageRepo
+from .infra.repo.text_repo import TextRepo
+from .domain.randomization import choose_weighted
 
 
 @register("randomreply_plugin", "maxshiro", "跨平台随机回复插件（QQ/Telegram）", "1.5.0")
