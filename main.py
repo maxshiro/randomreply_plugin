@@ -20,7 +20,7 @@ from .infra.repo.text_repo import TextRepo
 from .domain.randomization import choose_weighted
 
 
-@register("randomreply_plugin", "maxshiro", "跨平台随机回复插件（QQ/Telegram）", "1.5.0")
+@register("randomreply_plugin", "maxshiro", "跨平台随机回复插件（QQ/Telegram）", "1.5.1")
 class RandomReplyPlugin(Star):
     def __init__(self, context: Context, config: Optional[AstrBotConfig] = None):
         super().__init__(context)
@@ -261,7 +261,7 @@ class RandomReplyPlugin(Star):
     async def debug_at_message(self, event: AstrMessageEvent, text: str = ""):
         if not self._is_admin_debug_enabled() or not self.orchestrator:
             return
-        kind, content, _ = self.orchestrator.at_feature.pick(group_id="private", message_text=text.strip())
+        content, kind, _ = self.orchestrator.at_feature.pick(group_id="private", message_text=text.strip())
         if not kind or not content:
             yield event.plain_result("@测试未命中任何动作。")
             return

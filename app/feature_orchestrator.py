@@ -34,11 +34,11 @@ class FeatureOrchestrator:
         candidates: List[Tuple[str, str, Optional[str]]] = []
         reply, reply_type, source = self.random_reply_feature.pick(group_id=group_id, force_trigger=False)
         if reply and reply_type:
-            candidates.append((reply_type, reply, source))
+            candidates.append((reply, reply_type, source))
 
         repeat_text = self.repeat_feature.pick(message_text)
         if repeat_text:
-            candidates.append(("text", repeat_text, "repeat"))
+            candidates.append((repeat_text, "text", "repeat"))
 
         if not candidates:
             return None, None, None
@@ -60,12 +60,12 @@ class FeatureOrchestrator:
         if bool(self.get_config("timestamp_enable_main_reply", True)):
             reply, reply_type, source = self.random_reply_feature.pick(group_id=group_id, force_trigger=True)
             if reply and reply_type:
-                candidates.append((reply_type, reply, source))
+                candidates.append((reply, reply_type, source))
 
         if bool(self.get_config("timestamp_enable_api_image", True)):
             api_ref = self.api_image_feature.pick(force_trigger=True)
             if api_ref:
-                candidates.append(("photo", api_ref, "api"))
+                candidates.append((api_ref, "photo", "api"))
 
         if not candidates:
             return None, None, None
